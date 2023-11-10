@@ -156,6 +156,31 @@ def uops_to_cstyle(lang:CStyleLanguage, function_name:str, uops:List[UOp]) -> Tu
         kk("c_frag = __builtin_amdgcn_wmma_f32_16x16x16_f16_w32(a_frag, b_frag, c_frag);")
         for i in range(8): kk(f"{r[vin[32+i]]} = c_frag[{i}];")
         kk("}")
+      elif args[0] == "CUDA":
+        kk("{")
+        kk("nvcuda::wmma::fragment<nvcuda::wmma::matrix_a, 16, 16, 16, half, nvcuda::wmma::row_major> a_frag;")
+        kk("nvcuda::wmma::fragment<nvcuda::wmma::matrix_b, 16, 16, 16, half, nvcuda::wmma::col_major> b_frag;")
+        kk("nvcuda::wmma::fragment<nvcuda::wmma::accumulator, 16, 16, 16, float> c_frag;")
+        kk("nvcuda::wmma::fill_fragment(c_frag, 0.0f);")
+
+        # Assuming vin is an array that contains indices for the values to be loaded into the fragments.
+        # Load the 'a' fragment
+        for i in range(16):
+          kk(f"a_frag.x[{i}] = {r[vin[i]]};")
+        # kk(f"nvcuda::wmma::load_matrix_sync(a_frag, reinterpret_cast<const half*>(&{r[vin[0]]}), 16);")
+        # Load the 'b' fragment
+        for i in range(16):
+          kk(f"b_frag.x[{i}] = {r[vin[i + 16]]};")
+        # kk(f"nvcuda::wmma::load_matrix_sync(b_frag, reinterpret_cast<const half*>(&{r[vin[16]]}), 16);")
+
+        # Perform the matrix multiplication and accumulate in 'c'
+        kk("nvcuda::wmma::mma_sync(c_frag, a_frag, b_frag, c_frag);")
+
+        # Store the result
+        # kk(f"nvcuda::wmma::store_matrix_sync(reinterpret_cast<float*>(&{r[vin[32]]}), c_frag, 16, nvcuda::wmma::mem_row_major);")
+        for i in range(8):
+          kk(f"{r[vin[32+i]]} = c_frag.x[{i}];")
+        kk("}")
       else:
         raise NotImplementedError(f"WMMA not implemented for {args}")
     elif uop == UOps.ALU:
