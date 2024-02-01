@@ -81,10 +81,11 @@ class TestLinearizer(unittest.TestCase):
     assert num_ops <= 0, "more load or alu uops than needed"
 
   def test_tensor_cores(self):
+    print(Device.DEFAULT)
     #if not isinstance(Device[Device.DEFAULT], Compiled):
     #  self.skipTest("Only Compiled uses linearizer")
-    #if Device.DEFAULT not in tensor_cores:
-    #  self.skipTest("No tensor cores for device")
+    if Device.DEFAULT not in tensor_cores:
+      self.skipTest("No tensor cores for device")
 
     for tc in tensor_cores[Device.DEFAULT]:
       if tc.arch is not None and tc.arch != os.uname().machine: continue
